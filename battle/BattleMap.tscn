@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://dcat7qhvav4tu"]
+
+[ext_resource type="Script" uid="uid://b5a4x18tn2dfn" path="res://battle/BattleMap.gd" id="1_v6srn"]
+
+[node name="BattleMap" type="Node2D"]
+script = ExtResource("1_v6srn")
+
+[node name="Units" type="Node2D" parent="."]
