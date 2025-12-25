@@ -11,6 +11,6 @@ config_version=5
 [application]
 
 config/name="WorldTalesF"
-run/main_scene="uid://dcat7qhvav4tu"
+run/main_scene="uid://cg1htiqjculc4"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
