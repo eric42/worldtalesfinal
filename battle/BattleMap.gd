@@ -22,9 +22,10 @@ var attack_mode := false
 var attack_tiles: Array[Vector2i] = []
 
 func _ready():
+	set_process_unhandled_input(true)
 	print("BattleMap pronta")
-	queue_redraw()
 	_setup_astar()
+	queue_redraw()
 
 func _draw():
 	for x in range(WIDTH):
@@ -78,64 +79,106 @@ func _draw():
 			true
 		)
 
-func _input(event):
+func _input(event: InputEvent) -> void:
+	# Jogador só pode agir no próprio turno
 	if not is_player_turn:
 		return
-	
+
+	# =====================================
+	# MODO ATAQUE
+	# =====================================
+	if attack_mode and event is InputEventMouseButton and event.pressed:
+		var grid: Vector2i = _mouse_to_grid(get_local_mouse_position())
+		var target: HeroUnit = _get_unit_at(grid)
+
+		if (
+			selected_unit
+			and target
+			and grid in attack_tiles
+			and target.faction != selected_unit.faction
+		):
+			# Ataque válido
+			_execute_attack(selected_unit, target)
+		else:
+			# Cancelou ataque → encerra ação (Wait implícito)
+			_finish_player_action(selected_unit)
+
+		queue_redraw()
+		return
+
+	# =====================================
+	# TECLA DE ATAQUE (A)
+	# =====================================
 	if event is InputEventKey and event.pressed and event.keycode == KEY_A:
 		if selected_unit and not selected_unit.has_acted:
 			attack_mode = true
+			reachable_tiles.clear()
 			_compute_attack_tiles(selected_unit)
 			queue_redraw()
 		return
-	
-	if attack_mode and event is InputEventMouseButton and event.pressed:
-			var grid = _mouse_to_grid(event.position)
-			var target = _get_unit_at(grid)
-			
-			if target and grid in attack_tiles and target.faction != selected_unit.faction:
-				_execute_attack(selected_unit, target)
-			else:
-				attack_mode = false
-				attack_tiles.clear()
-				_clear_selection()
-			
-			return
-	
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+
+	# =====================================
+	# CLIQUE ESQUERDO (SELEÇÃO / MOVIMENTO)
+	# =====================================
+	if event is InputEventMouseButton \
+	and event.pressed \
+	and event.button_index == MOUSE_BUTTON_LEFT:
+
 		var mouse_pos: Vector2 = get_local_mouse_position()
-		var grid = Vector2i(
-			int(mouse_pos.x / TILE_SIZE),
-			(mouse_pos.y / TILE_SIZE)
-		)
-		
-		hovered_tile = grid
-		
+		var grid: Vector2i = _mouse_to_grid(mouse_pos)
+
+		print("DEBUG CLICK grid:", grid)
+
 		var clicked_unit: HeroUnit = _get_unit_at(grid)
-			
+
+		# ---------------------------------
+		# SELECIONAR UNIDADE ALIADA
+		# ---------------------------------
 		if clicked_unit and clicked_unit.faction == "ally":
 			if clicked_unit.has_acted:
 				return
-			
+
+			print("DEBUG UNIT:", clicked_unit.grid_pos)
+
 			selected_unit = clicked_unit
+			attack_mode = false
+			attack_tiles.clear()
 			_compute_reachable_tiles(selected_unit)
-		elif selected_unit and grid in reachable_tiles:
+			queue_redraw()
+			return
 
-			var path = _get_path(selected_unit.grid_pos, grid, selected_unit)
-			
+		# ---------------------------------
+		# MOVER UNIDADE SELECIONADA
+		# ---------------------------------
+		if selected_unit and grid in reachable_tiles:
+			var path: Array[Vector2i] = _get_path(
+				selected_unit.grid_pos,
+				grid,
+				selected_unit
+			)
+
 			if path.size() > 0:
-				_move_unit_along_path(selected_unit, path)
+				var tween: Tween = _move_unit_along_path(selected_unit, path)
+				if tween:
+					await tween.finished
 
-			reachable_tiles.clear()
-			print("Unidade movida para:", grid)
-			
-			if all_player_units_acted():
-				get_parent().end_player_turn()
-		else:
-			selected_unit = null
-			print("Seleção limpa")
-		
+			# Movimento encerra a ação
+			_finish_player_action(selected_unit)
+			queue_redraw()
+			return
+
+		# ---------------------------------
+		# CLIQUE INVÁLIDO → WAIT IMPLÍCITO
+		# ---------------------------------
+		if selected_unit:
+			_finish_player_action(selected_unit)
+			queue_redraw()
+			return
+
+		# Nada selecionado → apenas limpa
+		_clear_selection()
 		queue_redraw()
+
 
 func _get_unit_at(grid_pos: Vector2i) -> HeroUnit:
 	for u in units:
@@ -189,7 +232,9 @@ func _setup_astar():
 	astar.update()
 
 func _update_astar_blocked(unit_to_ignore):
-	astar.update()
+	for x in range(WIDTH):
+		for y in range(HEIGHT):
+			astar.set_point_solid(Vector2i(x, y), false)
 	
 	for u in units:
 		if u == unit_to_ignore:
@@ -205,32 +250,32 @@ func _get_path(from: Vector2i, to: Vector2i, unit):
 	var path: Array[Vector2i] = astar.get_id_path(from, to)
 	return path
 
-func _move_unit_along_path(unit, path: Array[Vector2i]):
+func _move_unit_along_path(unit: HeroUnit, path: Array[Vector2i]) -> Tween:
 	if path.size() <= 1:
-		return
-	
+		return null
+
+	# remove tile inicial (posição atual)
 	path.remove_at(0)
-	
+
 	var tween := create_tween()
-	
+
 	for tile in path:
+		var target_pos := Vector2(tile) * TILE_SIZE
+
 		tween.tween_property(
 			unit,
 			"position",
-			Vector2(tile) * TILE_SIZE,
+			target_pos,
 			0.15
-		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		
+		)
+
+		# 🔥 ATUALIZA O GRID A CADA TILE
 		tween.tween_callback(func():
 			unit.grid_pos = tile
-			)
-	tween.finished.connect(func():
-		unit.has_acted = true
-		_clear_selection()
-		
-		if all_player_units_acted():
-			get_parent().end_player_turn()
-	)
+		)
+
+	return tween
+
 
 func _get_path_cost(from: Vector2i, to: Vector2i, unit) -> int:
 	var path = _get_path(from, to, unit)
@@ -275,19 +320,38 @@ func _execute_attack(attacker, defender):
 	)
 	
 	defender.hp -= damage
-	print("Dano Causado:", damage, "HP restante:", defender.hp)
+	print("Atacante Causou:", damage, "HP defensor:", defender.hp)
 	
 	if defender.hp <= 0:
 		_kill_unit(defender)
+		_end_attack(attacker)
+		return
 	
+	if _is_adjacent(attacker.grid_pos, defender.grid_pos):
+		var counter_damage = CombatResolver.calculate_damage(
+			defender,
+			attacker,
+			CombatResolver.AttackType.PHYSICAL,
+			CombatResolver.Modifier.NEUTRAL,
+			CombatResolver.Modifier.NEUTRAL
+		)
+		
+		attacker.hp -= counter_damage
+		print("Contra-ataque causou", counter_damage, "-> HP atacante:", attacker.hp)
+		
+		if attacker.hp <= 0:
+			_kill_unit(attacker)
+			return
+		
+	_end_attack(attacker)
+
+func _end_attack(attacker: HeroUnit):
 	attacker.has_acted = true
 	attack_mode = false
 	attack_tiles.clear()
 	_clear_selection()
-	
-	if all_player_units_acted():
-		get_parent().end_player_turn()
-	
+
+
 func _kill_unit(unit):
 	units.erase(unit)
 	unit.queue_free()
@@ -300,3 +364,125 @@ func _mouse_to_grid(mouse_pos: Vector2) -> Vector2i:
 		int(mouse_pos.x / TILE_SIZE),
 		int(mouse_pos.y / TILE_SIZE)
 	)
+
+func _is_adjacent(a: Vector2i, b: Vector2i) -> bool:
+	return abs(a.x - b.x) + abs(a.y - b.y) == 1
+
+func _process_enemy_turn():
+	print("IA inimiga processando...")
+	
+	for enemy in units:
+		if enemy.faction != "enemy":
+			continue
+		if enemy.has_acted:
+			continue
+		
+		await _enemy_take_action(enemy)
+	
+
+func _get_closest_ally(from: HeroUnit) -> HeroUnit:
+	var closest: HeroUnit = null
+	var best_dist: int = 999999
+	
+	for u in units:
+		if u.faction != "ally":
+			continue
+		
+		var dist: int = abs(u.grid_pos.x - from.grid_pos.x) + abs(u.grid_pos.y - from.grid_pos.y)
+		if dist < best_dist:
+			best_dist = dist
+			closest = u
+		
+	return closest
+
+func _enemy_take_action(enemy: HeroUnit) -> void:
+	if enemy.has_acted:
+		return
+	
+	var target: HeroUnit = _get_closest_ally(enemy)
+	if not target:
+		enemy.has_acted = true
+		return
+	
+	if _is_adjacent(enemy.grid_pos, target.grid_pos):
+		_execute_attack(enemy, target)
+		return
+	
+	var destination: Vector2i = _get_best_adjacent_tile(enemy, target)
+	if destination == Vector2i(-1, -1):
+		enemy.has_acted = true
+		return
+	
+	var path: Array[Vector2i] = _get_path(enemy.grid_pos, destination, enemy)
+	if path.size() <= 1:
+		enemy.has_acted = true
+		return
+	
+	var steps: int = min(enemy.move_range, path.size() - 1)
+	var final_path: Array[Vector2i] = []
+	
+	for i in range(steps + 1):
+		final_path.append(path[i])
+	
+	var tween: Tween = _move_unit_along_path(enemy, final_path)
+	
+	if tween:
+		await tween.finished
+		
+		if _is_adjacent(enemy.grid_pos, target.grid_pos) and target.is_alive():
+			_execute_attack(enemy, target)
+			return
+		
+		enemy.has_acted = true
+
+func start_enemy_turn():
+	is_player_turn = false
+	
+	for u in units:
+		if u.faction == "enemy":
+			u.reset_turn()
+	
+	await  _process_enemy_turn()
+
+func start_player_turn():
+	is_player_turn = true
+	attack_mode = false
+	attack_tiles.clear()
+	_clear_selection()
+	
+	for u in units:
+		if u.faction == "ally":
+			u.reset_turn()
+	
+	queue_redraw()
+
+func _get_best_adjacent_tile(enemy: HeroUnit, target: HeroUnit) ->  Vector2i:
+	var best_tile := Vector2i(-1, -1)
+	var best_cost := INF
+	
+	for d in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+		var tile : Vector2i = target.grid_pos + d
+		
+		if not _is_inside_map(tile):
+			continue
+		if _is_tile_occupied(tile):
+			continue
+		
+		var cost := _get_path_cost(enemy.grid_pos, tile, enemy)
+		if cost < best_cost:
+			best_cost = cost
+			best_tile = tile
+		
+	return best_tile
+
+func _finish_player_action(unit: HeroUnit) -> void:
+	if not unit:
+		return
+
+	unit.has_acted = true
+	attack_mode = false
+	attack_tiles.clear()
+	_clear_selection()
+
+	if all_player_units_acted():
+		get_parent().end_player_turn()

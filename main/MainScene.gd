@@ -20,21 +20,19 @@ func _ready():
 
 func _start_player_turn():
 	current_turn = Turn.PLAYER
-	map.is_player_turn = true
-	
-	for u in map.units:
-		u.has_acted = false
-	
+	map.start_player_turn()
 	print("Turno do PLAYER")
 
 func end_player_turn():
 	print("Fim do turno do PLAYER")
 	_start_enemy_turn()
 
+func end_enemy_turn():
+	print("Fim do turno do ENEMY")
+	_start_player_turn()
+
 func _start_enemy_turn():
 	current_turn = Turn.ENEMY
-	map.is_player_turn = false
-	print("Turno do ENEMY")
-	
-	await get_tree().create_timer(1.0).timeout
-	_start_player_turn()
+	print("turno do ENEMY")
+	await map.start_enemy_turn()
+	end_enemy_turn()
