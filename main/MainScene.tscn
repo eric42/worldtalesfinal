@@ -1,9 +1,34 @@
-[gd_scene load_steps=3 format=3 uid="uid://cg1htiqjculc4"]
+[gd_scene load_steps=8 format=3 uid="uid://cg1htiqjculc4"]
 
 [ext_resource type="Script" uid="uid://ckaeanfr4em3v" path="res://main/MainScene.gd" id="1_armln"]
 [ext_resource type="PackedScene" uid="uid://dcat7qhvav4tu" path="res://battle/BattleMap.tscn" id="1_aw1al"]
+[ext_resource type="Script" uid="uid://bjf00h3t6qh1l" path="res://turns/TurnManager.gd" id="3_swr24"]
+[ext_resource type="Script" uid="uid://5yo0ws43lwps" path="res://units/UnitManager.gd" id="4_ixvwh"]
+[ext_resource type="Script" uid="uid://bp2a5u3vp33kc" path="res://input/InputController.gd" id="5_enypl"]
+[ext_resource type="PackedScene" uid="uid://bombqatoa25m4" path="res://units/HeroUnit.tscn" id="5_u8god"]
+[ext_resource type="Script" uid="uid://d0vhp2w8uuy4g" path="res://ai/EnemyAIController.gd" id="7_u8god"]
 
 [node name="MainScene" type="Node2D"]
 script = ExtResource("1_armln")
 
+[node name="TurnManager" type="Node" parent="."]
+script = ExtResource("3_swr24")
+
 [node name="BattleMap" parent="." instance=ExtResource("1_aw1al")]
+
+[node name="UnitManager" type="Node" parent="."]
+script = ExtResource("4_ixvwh")
+battle_map_path = NodePath("../BattleMap")
+hero_scene = ExtResource("5_u8god")
+
+[node name="EnemyAIController" type="Node" parent="."]
+script = ExtResource("7_u8god")
+battle_map_path = NodePath("../BattleMap")
+unit_manager_path = NodePath("../UnitManager")
+turn_manager_path = NodePath("../TurnManager")
+
+[node name="InputController" type="Node" parent="."]
+script = ExtResource("5_enypl")
+battle_map_path = NodePath("../BattleMap")
+unit_manager_path = NodePath("../UnitManager")
+turn_manager_path = NodePath("../TurnManager")

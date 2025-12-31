@@ -1,38 +1,22 @@
 extends Node2D
 
-@onready var map = $BattleMap
-@onready var hero_scene: PackedScene = preload("res://units/HeroUnit.tscn")
+@onready var turn_manager: TurnManager = $TurnManager
+@onready var unit_manager: UnitManager = $UnitManager
+@onready var battle_map: BattleMap = $BattleMap
 
-enum Turn {
-	PLAYER,
-	ENEMY
-}
-
-var current_turn: Turn = Turn.PLAYER
-
-func _ready():
+func _ready() -> void:
 	print("MainScene pronta")
-	_start_player_turn()
-	
-	map.spawn_unit(hero_scene, Vector2i(2, 2), "ally")
-	map.spawn_unit(hero_scene, Vector2i(4, 2), "ally")
-	map.spawn_unit(hero_scene, Vector2i(7, 6), "enemy")
 
-func _start_player_turn():
-	current_turn = Turn.PLAYER
-	map.start_player_turn()
+	unit_manager.spawn_unit(Vector2i(2, 2), "ally")
+	unit_manager.spawn_unit(Vector2i(4, 2), "ally")
+	unit_manager.spawn_unit(Vector2i(7, 6), "enemy")
+
+	turn_manager.player_turn_started.connect(_on_player_turn_started)
+
+func _on_player_turn_started() -> void:
 	print("Turno do PLAYER")
+	unit_manager.reset_units_turn("ally")
+	battle_map.clear_selection()
 
-func end_player_turn():
-	print("Fim do turno do PLAYER")
-	_start_enemy_turn()
-
-func end_enemy_turn():
-	print("Fim do turno do ENEMY")
-	_start_player_turn()
-
-func _start_enemy_turn():
-	current_turn = Turn.ENEMY
-	print("turno do ENEMY")
-	await map.start_enemy_turn()
-	end_enemy_turn()
+func _on_enemy_turn_started() -> void:
+	unit_manager.reset_units_turn("enemy")

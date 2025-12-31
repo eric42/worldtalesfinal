@@ -1,0 +1,3 @@
+[gd_scene format=3 uid="uid://dcnyfgpaed7x5"]
+
+[node name="EnemyAiController" type="Node2D"]
