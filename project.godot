@@ -14,3 +14,9 @@ config/name="WorldTalesF"
 run/main_scene="uid://cg1htiqjculc4"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
+
+[rendering]
+
+rendering_device/driver.windows="d3d12"
+renderer/rendering_method="gl_compatibility"
+global_illumination/gi/use_half_resolution=true
