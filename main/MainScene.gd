@@ -8,9 +8,9 @@ extends Node2D
 func _ready() -> void:
 	print("MainScene pronta")
 
-	unit_manager.spawn_unit(Vector2i(2, 2), "ally")
-	unit_manager.spawn_unit(Vector2i(4, 2), "ally")
-	unit_manager.spawn_unit(Vector2i(7, 6), "enemy")
+	unit_manager.spawn_unit(Vector2i(2, 2), Faction.Type.ALLY)
+	unit_manager.spawn_unit(Vector2i(4, 2), Faction.Type.ALLY)
+	unit_manager.spawn_unit(Vector2i(7, 6), Faction.Type.ENEMY)
 
 	turn_manager.player_turn_started.connect(_on_player_turn_started)
 	turn_manager.enemy_turn_started.connect(_on_enemy_turn_started)

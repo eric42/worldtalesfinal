@@ -12,12 +12,12 @@ var current_turn: Turn = Turn.PLAYER
 
 func start_player_turn() -> void:
 	current_turn = Turn.PLAYER
-	unit_manager.reset_units_turn("ally")
+	unit_manager.reset_units_turn(Faction.Type.ALLY)
 	player_turn_started.emit()
 
 func start_enemy_turn() -> void:
 	current_turn = Turn.ENEMY
-	unit_manager.reset_units_turn("enemy")
+	unit_manager.reset_units_turn(Faction.Type.ENEMY)
 	enemy_turn_started.emit()
 
 func end_current_turn():

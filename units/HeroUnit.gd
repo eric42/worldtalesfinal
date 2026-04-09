@@ -6,7 +6,8 @@ class_name HeroUnit
 # =========================
 var map: BattleMap = null
 var grid_pos: Vector2i
-var faction: String = "ally" # "ally" | "enemy"
+var unit_manager: UnitManager
+@export var faction: Faction.Type
 
 # =========================
 # STATS (BASE)
@@ -56,4 +57,10 @@ func set_grid_pos(new_pos: Vector2i) -> void:
 
 func _sync_world_position() -> void:
 	if map != null:
-		position = Vector2(grid_pos) * map.TILE_SIZE
+		position = Vector2(grid_pos) * map.tile_size
+
+func die():
+	if unit_manager:
+		unit_manager.remove_unit(self)
+	
+	queue_free()

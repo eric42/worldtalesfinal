@@ -40,6 +40,10 @@ static func calculate_damage(
 	wt_mod: Modifier
 ) -> int:
 	
+	if attacker == null or defender == null:
+		push_error("Attacker ou Defender é null")
+		return 0
+		
 	var skill := modifier_value(skill_mod)
 	var wt := weapon_triangle_value(wt_mod)
 	
@@ -55,3 +59,36 @@ static func calculate_damage(
 	
 	return max(1, final_damage)
 	
+
+static func simulate_attack(
+	attacker: HeroUnit,
+	defender: HeroUnit
+) -> Dictionary:
+	
+	var damage_to_defender: int = calculate_damage(
+		attacker,
+		defender,
+		AttackType.PHYSICAL,
+		Modifier.NEUTRAL,
+		Modifier.NEUTRAL
+	)
+	
+	var defender_remaining_hp: int = defender.hp - damage_to_defender
+	
+	var damage_to_attacker: int = 0
+	
+	# Contra-ataque (se sobreviver e estiver adjacente)
+	if defender_remaining_hp > 0:
+		damage_to_attacker = calculate_damage(
+			defender,
+			attacker,
+			AttackType.PHYSICAL,
+			Modifier.NEUTRAL,
+			Modifier.NEUTRAL
+		)
+	
+	return {
+		"damage_to_defender": damage_to_defender,
+		"damage_to_attacker": damage_to_attacker,
+		"defender_remaining_hp": defender_remaining_hp
+	}

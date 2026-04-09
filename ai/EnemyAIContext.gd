@@ -15,9 +15,12 @@ var enemy_avg_hp: float
 
 var phase: BattlePhase
 
+const FACTION_ALLY: String = "ally"
+const FACTION_ENEMY: String = "enemy"
+
 func update(unit_manager: UnitManager) -> void:
-	var allies := unit_manager.get_units_by_faction("ally")
-	var enemies := unit_manager.get_units_by_faction("enemies")
+	var allies : Array[HeroUnit] = unit_manager.get_units_by_faction(Faction.Type.ALLY)
+	var enemies : Array[HeroUnit] = unit_manager.get_units_by_faction(Faction.Type.ENEMY)
 	
 	ally_count = allies.size()
 	enemy_count = enemies.size()
@@ -46,3 +49,4 @@ func _calculate_phase() -> BattlePhase:
 		return BattlePhase.MID
 	else:
 		return BattlePhase.LATE
+		

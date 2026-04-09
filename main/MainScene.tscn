@@ -30,12 +30,12 @@ unit_manager_path = NodePath("../UnitManager")
 turn_manager_path = NodePath("../TurnManager")
 game_state_path = NodePath("../GameStateManager")
 
-[node name="InputController" type="Node" parent="."]
+[node name="GameStateManager" type="Node" parent="."]
+script = ExtResource("8_k6d16")
+
+[node name="InputController" type="Node2D" parent="."]
 script = ExtResource("5_enypl")
 battle_map_path = NodePath("../BattleMap")
 unit_manager_path = NodePath("../UnitManager")
 turn_manager_path = NodePath("../TurnManager")
 game_state_path = NodePath("../GameStateManager")
-
-[node name="GameStateManager" type="Node" parent="."]
-script = ExtResource("8_k6d16")

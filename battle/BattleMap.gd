@@ -4,9 +4,10 @@ class_name BattleMap
 # =========================
 # CONFIGURAÇÃO DO MAPA
 # =========================
-const TILE_SIZE: int = 64
 const WIDTH: int = 11
 const HEIGHT: int = 11
+
+@export var tile_size: int = 64
 
 # =========================
 # NODES
@@ -14,7 +15,7 @@ const HEIGHT: int = 11
 @onready var units_container: Node2D = $Units
 
 # =========================
-# VISUAL / SELEÇÃO
+# VISUAL
 # =========================
 var hovered_tile: Vector2i = Vector2i(-1, -1)
 var reachable_tiles: Array[Vector2i] = []
@@ -34,46 +35,49 @@ func _ready() -> void:
 	print("BattleMap pronta")
 
 func _draw() -> void:
-	# Grid
+	# GRID
 	for x in range(WIDTH):
 		for y in range(HEIGHT):
 			draw_rect(
-				Rect2(Vector2(x, y) * TILE_SIZE, Vector2(TILE_SIZE, TILE_SIZE)),
+				Rect2(Vector2(x, y) * tile_size, Vector2(tile_size, tile_size)),
 				Color(1, 1, 1, 0.15),
 				false
 			)
 
-	# Hover
+	# HOVER
 	if hovered_tile.x >= 0:
 		draw_rect(
-			Rect2(Vector2(hovered_tile) * TILE_SIZE, Vector2(TILE_SIZE, TILE_SIZE)),
+			Rect2(Vector2(hovered_tile) * tile_size, Vector2(tile_size, tile_size)),
 			Color(1, 1, 0, 0.25),
 			true
 		)
 
-	# Movimento
+	# MOVIMENTO
 	for tile in reachable_tiles:
 		draw_rect(
-			Rect2(Vector2(tile) * TILE_SIZE, Vector2(TILE_SIZE, TILE_SIZE)),
+			Rect2(Vector2(tile) * tile_size, Vector2(tile_size, tile_size)),
 			Color(0.3, 0.6, 1, 0.25),
 			true
 		)
 
-	# Ataque
+	# ATAQUE
 	for tile in attack_tiles:
 		draw_rect(
-			Rect2(Vector2(tile) * TILE_SIZE, Vector2(TILE_SIZE, TILE_SIZE)),
+			Rect2(Vector2(tile) * tile_size, Vector2(tile_size, tile_size)),
 			Color(1, 0, 0, 0.35),
 			true
 		)
 
 # =========================
-# GRID / UTIL
+# GRID
 # =========================
-func mouse_to_grid(mouse_pos: Vector2) -> Vector2i:
+func grid_to_world(grid: Vector2i) -> Vector2:
+	return Vector2(grid.x * tile_size, grid.y * tile_size)
+
+func world_to_grid(pos: Vector2) -> Vector2i:
 	return Vector2i(
-		int(mouse_pos.x / TILE_SIZE),
-		int(mouse_pos.y / TILE_SIZE)
+		int(pos.x / tile_size),
+		int(pos.y / tile_size)
 	)
 
 func is_inside_map(tile: Vector2i) -> bool:
@@ -83,7 +87,7 @@ func is_adjacent(a: Vector2i, b: Vector2i) -> bool:
 	return abs(a.x - b.x) + abs(a.y - b.y) == 1
 
 # =========================
-# VISUAL (API PÚBLICA)
+# VISUAL API
 # =========================
 func set_hovered_tile(tile: Vector2i) -> void:
 	hovered_tile = tile
@@ -123,12 +127,10 @@ func get_grid_path(
 	blocked_positions: Array[Vector2i]
 ) -> Array[Vector2i]:
 
-	# Limpa o grid
 	for x in range(WIDTH):
 		for y in range(HEIGHT):
 			astar.set_point_solid(Vector2i(x, y), false)
 
-	# Bloqueia unidades
 	for pos in blocked_positions:
 		if pos != unit_to_ignore.grid_pos:
 			astar.set_point_solid(pos, true)
@@ -152,7 +154,7 @@ func move_unit_along_path(
 	var tween: Tween = create_tween()
 
 	for tile in path.slice(1):
-		var target_pos: Vector2 = Vector2(tile) * TILE_SIZE
+		var target_pos: Vector2 = grid_to_world(tile)
 		tween.tween_property(unit, "position", target_pos, 0.15)
 
 	tween.finished.connect(func():
@@ -165,22 +167,34 @@ func move_unit_along_path(
 # COMBATE
 # =========================
 func execute_attack(attacker: HeroUnit, defender: HeroUnit) -> void:
-	var damage: int = CombatResolver.calculate_damage(
-		attacker,
-		defender,
-		CombatResolver.AttackType.PHYSICAL,
-		CombatResolver.Modifier.NEUTRAL,
-		CombatResolver.Modifier.NEUTRAL
-	)
-
-	defender.take_damage(damage)
-	print("Dano:", damage, "HP defensor:", defender.hp)
-
+	var result: Dictionary = CombatResolver.simulate_attack(attacker, defender)
+	
+	#=======================
+	#Ataque Inicial
+	#=======================
+	defender.take_damage(result["damage_to_defender"])
+	print("Dano no defensor:", result["damage_to_defender"])
+	
+	#=======================
+	#Contra-ataque (SE SOBREVIVER)
+	#=======================
+	if defender.is_alive():
+		attacker.take_damage(result["damage_to_attacker"])
+		print("Contra-ataque:", result["damage_to_attacker"])
+	
+	#=======================
+	#morte
+	#=======================
 	if not defender.is_alive():
+		print("Defensor morreu")
 		defender.queue_free()
-
+	
+	if not attacker.is_alive():
+		print("Atacante morreu")
+		attacker.queue_free()
+	
 # =========================
-# ALCANCE DE MOVIMENTO
+# MOVIMENTO RANGE
 # =========================
 func compute_reachable_tiles(
 	unit: HeroUnit,
@@ -211,3 +225,76 @@ func compute_reachable_tiles(
 				result.append(tile)
 
 	return result
+
+# =========================
+# POSICIONAMENTO
+# =========================
+func place_unit(unit: HeroUnit, grid: Vector2i) -> void:
+	unit.grid_pos = grid
+	unit.position = grid_to_world(grid)
+
+func compute_attack_tiles(unit: HeroUnit) -> Array[Vector2i]:
+	var tiles: Array[Vector2i] = []
+	
+	var directions:  Array[Vector2i] = [
+		Vector2i.LEFT,
+		Vector2i.RIGHT,
+		Vector2i.UP,
+		Vector2i.DOWN
+	]
+	
+	for dir: Vector2i in directions:
+		var pos: Vector2i = unit.grid_pos + dir
+		
+		if is_inside_map(pos):
+			tiles.append(pos)
+		
+	return tiles
+
+func compute_attack_tiles_from_movement(move_tiles: Array[Vector2i], blocked_positions: Array[Vector2i]) -> Array[Vector2i]:
+	
+	var attack_tiles: Array[Vector2i] = []
+	var move_set := {}
+	
+	#Para lookup rápido
+	for tile in move_tiles:
+		move_set[tile] = true
+		
+	var directions: Array[Vector2i] = [
+		Vector2i.LEFT,
+		Vector2i.RIGHT,
+		Vector2i.UP,
+		Vector2i.DOWN
+	]
+	#=====================
+	#1. Bordas da área
+	#=====================
+	for tile in move_tiles:
+		for dir in directions:
+			var neighbor = tile + dir
+			
+			if not is_inside_map(neighbor):
+				continue
+			
+			#Se NÃO está na área -> é borda
+			if not move_set.has(neighbor):
+				if not attack_tiles.has(neighbor):
+					attack_tiles.append(neighbor)
+	
+	#==============
+	#2. Inimigos dentro da área
+	#==============
+	for tile in move_tiles:
+		var other_unit = get_unit_at(tile)
+		
+		if other_unit and other_unit.is_enemy:
+			if not attack_tiles.has(tile):
+				attack_tiles.append(tile)
+	
+	return attack_tiles
+
+func get_unit_at(tile: Vector2i) -> HeroUnit:
+	for child in units_container.get_children():
+		if child.grid_pos == tile:
+			return child
+	return null
