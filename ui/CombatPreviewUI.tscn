@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://xmyo16cu0avf"]
+
+[node name="CombatPreviewUI" type="Control"]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_right = 200.0
+offset_bottom = 100.0
+grow_vertical = 0
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="AttackerHP" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="DefenderHP" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="DamageToDefender" type="Label" parent="Panel/VBoxContainer"]
+custom_minimum_size = Vector2(0, -0.38)
+layout_mode = 2
+
+[node name="DamageToAttacker" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2

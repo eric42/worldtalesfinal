@@ -5,11 +5,13 @@ class_name InputController
 @export var unit_manager_path: NodePath
 @export var turn_manager_path: NodePath
 @export var game_state_path: NodePath
+@export var preview_ui_path: NodePath
 
 @onready var map: BattleMap = get_node(battle_map_path)
 @onready var unit_manager: UnitManager = get_node(unit_manager_path)
 @onready var turn_manager: TurnManager = get_node(turn_manager_path)
 @onready var game_state: GameStateManager = get_node(game_state_path)
+@onready var preview_ui: CombatPreviewUI = get_node(preview_ui_path)
 
 var selected_unit: HeroUnit = null
 
@@ -64,7 +66,7 @@ func _input(event: InputEvent) -> void:
 				blocked
 				)
 				
-			map. show_attack_tiles(attack_tiles)
+			map.show_attack_tiles(attack_tiles)
 			
 			return
 
@@ -75,17 +77,16 @@ func _input(event: InputEvent) -> void:
 			
 			if unit.faction == Faction.Type.ENEMY:
 				
+				if selected_unit != null:
+					var sim: Dictionary = CombatResolver.simulate_attack(
+						selected_unit,
+						unit
+					)
+					
+					print("Dano causado:", sim["damage_to_defender"])
+					print("Dano recebido:", sim["damage_to_attacker"])
 				
-				var sim: Dictionary = CombatResolver.simulate_attack(
-					selected_unit,
-					unit
-				)
-				
-				print("Preview:")
-				print("Dano causado:", sim["damage_to_defender"])
-				print("Dano recebido:", sim["damage_to_attacker"])
-				
-				if map.is_adjacent(selected_unit.grid_pos, unit.grid_pos):
+				if map.attack_tiles.has(unit.grid_pos):
 					game_state.set_state(GameStateManager.State.PLAYER_ANIMATING)
 					
 					map.execute_attack(selected_unit, unit)
@@ -147,3 +148,27 @@ func _input(event: InputEvent) -> void:
 func _reset_selection() -> void:
 	selected_unit = null
 	map.clear_selection()
+	
+	preview_ui.hide_preview()
+
+func _process(delta: float) -> void:
+	if selected_unit == null:
+		return
+	
+	if not is_instance_valid(selected_unit):
+		return
+	
+	var mouse_pos: Vector2 = get_global_mouse_position()
+	var grid: Vector2i = map.world_to_grid(mouse_pos)
+	
+	var unit: HeroUnit = unit_manager.get_unit_at(grid)
+	
+	if unit != null and unit.faction == Faction.Type.ENEMY:
+		if map.attack_tiles.has(grid):
+			
+			var sim = CombatResolver.simulate_attack(selected_unit, unit)
+			preview_ui.show_preview(sim)
+		else:
+			preview_ui.hide_preview()
+	else:
+		preview_ui.hide_preview()

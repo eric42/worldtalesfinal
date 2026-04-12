@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://cg1htiqjculc4"]
+[gd_scene load_steps=11 format=3 uid="uid://cg1htiqjculc4"]
 
 [ext_resource type="Script" uid="uid://ckaeanfr4em3v" path="res://main/MainScene.gd" id="1_armln"]
 [ext_resource type="PackedScene" uid="uid://dcat7qhvav4tu" path="res://battle/BattleMap.tscn" id="1_aw1al"]
@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" uid="uid://bombqatoa25m4" path="res://units/HeroUnit.tscn" id="5_u8god"]
 [ext_resource type="Script" uid="uid://d0vhp2w8uuy4g" path="res://ai/EnemyAIController.gd" id="7_u8god"]
 [ext_resource type="Script" uid="uid://ks4fre45admx" path="res://core/GameStateManager.gd" id="8_k6d16"]
+[ext_resource type="PackedScene" uid="uid://xmyo16cu0avf" path="res://ui/CombatPreviewUI.tscn" id="9_6k2uc"]
+[ext_resource type="Script" uid="uid://spgbe7yyeqk3" path="res://ui/CombatPreviewUI.gd" id="10_otp8k"]
 
 [node name="MainScene" type="Node2D"]
 script = ExtResource("1_armln")
@@ -39,3 +41,10 @@ battle_map_path = NodePath("../BattleMap")
 unit_manager_path = NodePath("../UnitManager")
 turn_manager_path = NodePath("../TurnManager")
 game_state_path = NodePath("../GameStateManager")
+preview_ui_path = NodePath("../CanvasLayer/CombatPreviewUI")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="CombatPreviewUI" parent="CanvasLayer" instance=ExtResource("9_6k2uc")]
+offset_bottom = 40.0
+script = ExtResource("10_otp8k")
