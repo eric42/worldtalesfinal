@@ -29,6 +29,7 @@ func _ready() -> void:
 # INPUT
 # =========================
 func _input(event: InputEvent) -> void:
+
 	if not game_state.is_player_input_allowed():
 		return
 
@@ -50,7 +51,7 @@ func _input(event: InputEvent) -> void:
 		# =========================
 		# SELEÇÃO
 		# =========================
-		if unit != null \
+		if is_instance_valid(unit) \
 		and unit.faction == Faction.Type.ALLY \
 		and not unit.has_acted:
 
@@ -73,18 +74,16 @@ func _input(event: InputEvent) -> void:
 		# =========================
 		# ATAQUE
 		# =========================
-		if selected_unit != null and unit != null:
-			
+		if is_instance_valid(selected_unit) and is_instance_valid(unit):
 			if unit.faction == Faction.Type.ENEMY:
 				
-				if selected_unit != null:
-					var sim: Dictionary = CombatResolver.simulate_attack(
-						selected_unit,
-						unit
-					)
-					
-					print("Dano causado:", sim["damage_to_defender"])
-					print("Dano recebido:", sim["damage_to_attacker"])
+				var sim: Dictionary = CombatResolver.simulate_attack(
+					selected_unit,
+					unit
+				)
+				
+				print("Dano causado:", sim["damage_to_defender"])
+				print("Dano recebido:", sim["damage_to_attacker"])
 				
 				if map.attack_tiles.has(unit.grid_pos):
 					game_state.set_state(GameStateManager.State.PLAYER_ANIMATING)
@@ -105,8 +104,7 @@ func _input(event: InputEvent) -> void:
 		# =========================
 		# MOVIMENTO
 		# =========================
-		if selected_unit != null and map.is_tile_reachable(grid):
-
+		if is_instance_valid(selected_unit) and map.is_tile_reachable(grid):
 			game_state.set_state(GameStateManager.State.PLAYER_ANIMATING)
 
 			var blocked: Array[Vector2i] = unit_manager.get_occupied_tiles()
@@ -163,7 +161,7 @@ func _process(delta: float) -> void:
 	
 	var unit: HeroUnit = unit_manager.get_unit_at(grid)
 	
-	if unit != null and unit.faction == Faction.Type.ENEMY:
+	if is_instance_valid(unit) and unit.faction == Faction.Type.ENEMY:
 		if map.attack_tiles.has(grid):
 			
 			var sim = CombatResolver.simulate_attack(selected_unit, unit)

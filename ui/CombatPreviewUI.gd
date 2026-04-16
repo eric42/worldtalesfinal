@@ -11,18 +11,14 @@ class_name CombatPreviewUI
 # LAYOUT
 # =========================
 func _ready() -> void:
-	# ancora no canto inferior esquerdo
 	await get_tree().process_frame
 	
-	anchor_left = 0
-	anchor_top = 1
-	anchor_right = 0
-	anchor_bottom = 1
+	set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	set_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	
-	# deslocamento da borda
 	offset_left = 20
-	offset_bottom = -60
-	custom_minimum_size = Vector2(200, 100)
+	offset_bottom = -20
+	offset_top = -120 
 
 # =========================
 # PREVIEW
