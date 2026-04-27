@@ -25,6 +25,12 @@ var unit_manager: UnitManager
 var hp: int
 var has_acted: bool = false
 
+#==========================
+#RANGE
+#==========================
+var attack_range_min: int = 1
+var attack_range_max: int = 1
+
 # =========================
 # GODOT
 # =========================

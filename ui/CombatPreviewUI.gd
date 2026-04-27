@@ -31,3 +31,11 @@ func show_preview(data: Dictionary) -> void:
 
 func hide_preview() -> void:
 	visible = false
+
+func update_preview(attacker: HeroUnit, target: HeroUnit):
+	var dist = abs(attacker.grid_pos.x - target.grid_pos.x) \
+	+ abs(attacker.grid_pos.y - target.grid_pos.y)
+	
+	if dist < attacker.attack_range_min or dist > attacker.attack_range_max:
+		hide_preview()
+		return

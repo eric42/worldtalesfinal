@@ -63,10 +63,10 @@ func _input(event: InputEvent) -> void:
 			map.show_reachable_tiles(reachable)
 			
 			var attack_tiles: Array[Vector2i] = map.compute_attack_tiles_from_movement(
-				reachable,
-				blocked
-				)
-				
+				unit,
+				reachable
+			)
+
 			map.show_attack_tiles(attack_tiles)
 			
 			return
@@ -170,3 +170,15 @@ func _process(delta: float) -> void:
 			preview_ui.hide_preview()
 	else:
 		preview_ui.hide_preview()
+
+
+func can_attack(attacker: HeroUnit, target: HeroUnit) -> bool:
+	if not is_instance_valid(attacker) or not is_instance_valid(target):
+		return false
+	
+	if attacker.faction == target.faction:
+		return false
+	
+	var dist = map.grid_distance(attacker.grid_position, target.grid_position)
+	
+	return dist >= attacker.attack_range_min and dist <= attacker.attack_range_max

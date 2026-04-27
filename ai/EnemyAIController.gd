@@ -60,6 +60,7 @@ func _process_enemy_turn() -> void:
 # =========================
 func _enemy_take_action(enemy: HeroUnit) -> void:
 	var target: HeroUnit = _choose_best_target(enemy)
+	var dist = map.grid_distance(enemy.grid_pos, target.grid_pos)
 
 	# Sem alvo
 	if target == null:
@@ -67,7 +68,7 @@ func _enemy_take_action(enemy: HeroUnit) -> void:
 		return
 
 	# 1️⃣ Ataque direto
-	if map.is_adjacent(enemy.grid_pos, target.grid_pos):
+	if dist >= enemy.attack_range_min and dist <= enemy.attack_range_max:
 		if _should_attack(enemy, target):
 			map.execute_attack(enemy, target)
 		enemy.has_acted = true
@@ -96,7 +97,7 @@ func _enemy_take_action(enemy: HeroUnit) -> void:
 	var move_path := best_path.slice(0, steps + 1)
 
 	# 3️⃣ Ataque pós-movimento
-	if map.is_adjacent(enemy.grid_pos, target.grid_pos):
+	if dist >= enemy.attack_range_min and dist <= enemy.attack_range_max:
 		map.execute_attack(enemy, target)
 
 	enemy.has_acted = true

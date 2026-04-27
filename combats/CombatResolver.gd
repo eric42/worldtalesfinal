@@ -74,11 +74,16 @@ static func simulate_attack(
 	)
 	
 	var defender_remaining_hp: int = defender.hp - damage_to_defender
+	var dist = abs(attacker.grid_pos.x - defender.grid_pos.x) \
+	+ abs(attacker.grid_pos.y - defender.grid_pos.y)
 	
 	var damage_to_attacker: int = 0
 	
 	# Contra-ataque (se sobreviver e estiver adjacente)
-	if defender_remaining_hp > 0:
+	if defender_remaining_hp > 0 \
+		and dist >= defender.attack_range_min \
+		and dist <= defender.attack_range_max:
+		
 		damage_to_attacker = calculate_damage(
 			defender,
 			attacker,

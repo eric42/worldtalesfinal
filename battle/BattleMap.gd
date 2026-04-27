@@ -251,46 +251,31 @@ func compute_attack_tiles(unit: HeroUnit) -> Array[Vector2i]:
 		
 	return tiles
 
-func compute_attack_tiles_from_movement(move_tiles: Array[Vector2i], blocked_positions: Array[Vector2i]) -> Array[Vector2i]:
+func compute_attack_tiles_from_movement(
+	unit: HeroUnit,
+	reachable_tiles: Array[Vector2i]
+) -> Array[Vector2i]:
 	
 	var attack_tiles: Array[Vector2i] = []
-	var move_set := {}
 	
-	#Para lookup rápido
-	for tile in move_tiles:
-		move_set[tile] = true
-		
-	var directions: Array[Vector2i] = [
-		Vector2i.LEFT,
-		Vector2i.RIGHT,
-		Vector2i.UP,
-		Vector2i.DOWN
-	]
-	#=====================
-	#1. Bordas da área
-	#=====================
-	for tile in move_tiles:
-		for dir in directions:
-			var neighbor = tile + dir
-			
-			if not is_inside_map(neighbor):
-				continue
-			
-			#Se NÃO está na área -> é borda
-			if not move_set.has(neighbor):
-				if not attack_tiles.has(neighbor):
-					attack_tiles.append(neighbor)
-	
-	#==============
-	#2. Inimigos dentro da área
-	#==============
-	for tile in move_tiles:
-		var other_unit = get_unit_at(tile)
-		
-		if other_unit and other_unit.is_enemy:
-			if not attack_tiles.has(tile):
-				attack_tiles.append(tile)
-	
+	for tile in reachable_tiles:
+		for x in range(-unit.attack_range_max, unit.attack_range_max + 1):
+			for y in range(-unit.attack_range_max, unit.attack_range_max + 1):
+				
+				var target: Vector2i = tile + Vector2i(x, y)
+				var dist: int = grid_distance(tile, target)
+				
+				if dist < unit.attack_range_min:
+					continue
+				if dist > unit.attack_range_max:
+					continue
+				
+				if not is_inside_map(target):
+					continue
+				
+				if target not in attack_tiles:
+					attack_tiles.append(target)
+
 	return attack_tiles
 
 func get_unit_at(tile: Vector2i) -> HeroUnit:
@@ -298,3 +283,6 @@ func get_unit_at(tile: Vector2i) -> HeroUnit:
 		if child.grid_pos == tile:
 			return child
 	return null
+
+func grid_distance(a: Vector2i, b: Vector2i) -> int:
+	return abs(a.x - b.x) + abs(a.y - b.y)
