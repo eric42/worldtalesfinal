@@ -26,6 +26,8 @@ func _ready() -> void:
 	assert(hero_scene != null)
 
 	print("UnitManager pronto")
+	print("Map:", map)
+	print("Units container:", map.units_container)
 
 # =========================
 # SPAWN / REMOVE
@@ -42,15 +44,22 @@ func spawn_unit(pos: Vector2i, faction: Faction.Type) -> HeroUnit:
 	unit.faction = faction
 	unit.has_acted = false
 	
-	unit.unit_manager = self   # ESSENCIAL
-	unit.map = map             # IMPORTANTE
+	unit.unit_manager = self
+	unit.map = map
 	
 	map.place_unit(unit, pos)
 	
-	add_child(unit)
+	# 🔥 GARANTE QUE NÃO TEM PAI
+	if unit.get_parent():
+		unit.get_parent().remove_child(unit)
+	
+	# 🔥 ADICIONA NO LUGAR CORRETO
+	map.units_container.add_child(unit)
+	
 	units.append(unit)
 	
-	print("HeroUnit pronta | grid =", pos, "| faction =", faction)
+	print("Spawnando unidade em:", pos, "facção:", faction)
+	print("Units no container agora:", map.units_container.get_child_count())
 	
 	return unit
 

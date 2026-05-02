@@ -67,6 +67,7 @@ func _draw() -> void:
 			Color(1, 0, 0, 0.35),
 			true
 		)
+		print("DRAW CALL | attack_tiles:", attack_tiles)
 
 # =========================
 # GRID
@@ -104,6 +105,7 @@ func show_reachable_tiles(tiles: Array[Vector2i]) -> void:
 
 func show_attack_tiles(tiles: Array[Vector2i]) -> void:
 	attack_tiles = tiles
+	print("Tiles de ataque enviados:", tiles) # DEBUG
 	queue_redraw()
 
 func is_tile_reachable(tile: Vector2i) -> bool:
@@ -233,48 +235,55 @@ func place_unit(unit: HeroUnit, grid: Vector2i) -> void:
 	unit.grid_pos = grid
 	unit.position = grid_to_world(grid)
 
-func compute_attack_tiles(unit: HeroUnit) -> Array[Vector2i]:
-	var tiles: Array[Vector2i] = []
-	
-	var directions:  Array[Vector2i] = [
-		Vector2i.LEFT,
-		Vector2i.RIGHT,
-		Vector2i.UP,
-		Vector2i.DOWN
-	]
-	
-	for dir: Vector2i in directions:
-		var pos: Vector2i = unit.grid_pos + dir
-		
-		if is_inside_map(pos):
-			tiles.append(pos)
-		
-	return tiles
+func compute_attack_tiles(unit: HeroUnit, reachable_tiles: Array[Vector2i]) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+
+	var possible_positions := reachable_tiles.duplicate()
+	possible_positions.append(unit.grid_pos)
+
+	for enemy in units_container.get_children():
+		if enemy.faction == unit.faction:
+			continue
+
+		var enemy_pos: Vector2i = enemy.grid_pos
+
+		for pos in possible_positions:
+			var dist: int = grid_distance(pos, enemy_pos)
+
+			if dist >= unit.attack_range_min and dist <= unit.attack_range_max:
+				if enemy_pos not in result:
+					result.append(enemy_pos)
+
+	return result
 
 func compute_attack_tiles_from_movement(
 	unit: HeroUnit,
 	reachable_tiles: Array[Vector2i]
 ) -> Array[Vector2i]:
-	
+
 	var attack_tiles: Array[Vector2i] = []
-	
-	for tile in reachable_tiles:
-		for x in range(-unit.attack_range_max, unit.attack_range_max + 1):
-			for y in range(-unit.attack_range_max, unit.attack_range_max + 1):
-				
-				var target: Vector2i = tile + Vector2i(x, y)
-				var dist: int = grid_distance(tile, target)
-				
-				if dist < unit.attack_range_min:
-					continue
-				if dist > unit.attack_range_max:
-					continue
-				
-				if not is_inside_map(target):
-					continue
-				
-				if target not in attack_tiles:
-					attack_tiles.append(target)
+
+	var possible_positions = reachable_tiles.duplicate()
+	possible_positions.append(unit.grid_pos)
+
+	for other in units_container.get_children():
+
+		if not is_instance_valid(other):
+			continue
+
+		# ignora aliados
+		if other.faction == unit.faction:
+			continue
+
+		var enemy_pos: Vector2i = other.grid_pos
+
+		for pos in possible_positions:
+			var dist: int = grid_distance(pos, enemy_pos)
+
+			if dist >= unit.attack_range_min and dist <= unit.attack_range_max:
+				if enemy_pos not in attack_tiles:
+					attack_tiles.append(enemy_pos)
+				break
 
 	return attack_tiles
 
@@ -286,3 +295,42 @@ func get_unit_at(tile: Vector2i) -> HeroUnit:
 
 func grid_distance(a: Vector2i, b: Vector2i) -> int:
 	return abs(a.x - b.x) + abs(a.y - b.y)
+
+func compute_attack_range_area(unit: HeroUnit, reachable_tiles: Array[Vector2i]) -> Array[Vector2i]:
+	
+	var attack_tiles: Array[Vector2i] = []
+	
+	var positions = reachable_tiles.duplicate()
+	positions.append(unit.grid_pos)
+	
+	for pos in positions:
+		for x in range(-unit.attack_range_max, unit.attack_range_max + 1):
+			for y in range(-unit.attack_range_max, unit.attack_range_max + 1):
+				
+				var target = pos + Vector2i(x, y)
+				var dist = grid_distance(pos, target)
+				
+				if dist < unit.attack_range_min:
+					continue
+				if dist > unit.attack_range_max:
+					continue
+				
+				if not is_inside_map(target):
+					continue
+				
+				if target not in attack_tiles:
+					attack_tiles.append(target)
+				
+	return attack_tiles
+
+func get_attackable_units(unit: HeroUnit, attack_tiles: Array[Vector2i]) -> Array[HeroUnit]:
+	
+	var targets: Array[HeroUnit] = []
+	
+	for tile in attack_tiles:
+		var u = get_unit_at(tile)
+		
+		if u != null and u.faction != unit.faction:
+			targets.append(u)
+	
+	return targets

@@ -52,23 +52,31 @@ func _input(event: InputEvent) -> void:
 		# SELEÇÃO
 		# =========================
 		if is_instance_valid(unit) \
-		and unit.faction == Faction.Type.ALLY \
-		and not unit.has_acted:
+			and unit.faction == Faction.Type.ALLY \
+			and not unit.has_acted:
 
 			selected_unit = unit
-
+			print("\n=== SELECIONOU ===")
+			print("Unit:", unit)
+			print("Pos:", unit.grid_pos)
+		
 			var blocked: Array[Vector2i] = unit_manager.get_occupied_tiles()
 			var reachable: Array[Vector2i] = map.compute_reachable_tiles(unit, blocked)
-
+		
+			# 🟦 movimento
 			map.show_reachable_tiles(reachable)
-			
+		
+			# 🔴 ataque CORRETO
 			var attack_tiles: Array[Vector2i] = map.compute_attack_tiles_from_movement(
 				unit,
 				reachable
 			)
-
-			map.show_attack_tiles(attack_tiles)
 			
+			map.show_attack_tiles(attack_tiles)
+		
+			var targets = map.get_attackable_units(unit, attack_tiles)
+			print("Alvos possíveis:", targets)
+
 			return
 
 		# =========================
@@ -85,7 +93,10 @@ func _input(event: InputEvent) -> void:
 				print("Dano causado:", sim["damage_to_defender"])
 				print("Dano recebido:", sim["damage_to_attacker"])
 				
-				if map.attack_tiles.has(unit.grid_pos):
+				var dist = map.grid_distance(selected_unit.grid_pos, unit.grid_pos)
+				
+				if dist >= selected_unit.attack_range_min and dist <= selected_unit.attack_range_max:
+					
 					game_state.set_state(GameStateManager.State.PLAYER_ANIMATING)
 					
 					map.execute_attack(selected_unit, unit)
@@ -163,11 +174,13 @@ func _process(delta: float) -> void:
 	
 	if is_instance_valid(unit) and unit.faction == Faction.Type.ENEMY:
 		if map.attack_tiles.has(grid):
+			var target = unit_manager.get_unit_at(grid)
 			
-			var sim = CombatResolver.simulate_attack(selected_unit, unit)
-			preview_ui.show_preview(sim)
-		else:
-			preview_ui.hide_preview()
+			if target != null and target.faction != selected_unit.faction:
+				var sim = CombatResolver.simulate_attack(selected_unit, unit)
+				preview_ui.show_preview(sim)
+			else:
+				preview_ui.hide_preview()
 	else:
 		preview_ui.hide_preview()
 
