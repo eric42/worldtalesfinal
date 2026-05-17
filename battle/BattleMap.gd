@@ -25,6 +25,8 @@ var attack_tiles: Array[Vector2i] = []
 # PATHFINDING
 # =========================
 var astar: AStarGrid2D = AStarGrid2D.new()
+var preview_path: Array[Vector2i] = []
+var hover_attack_tiles: Array[Vector2i] = []
 
 # =========================
 # GODOT
@@ -60,6 +62,14 @@ func _draw() -> void:
 			true
 		)
 
+	#PATH PREVIEW
+	for tile in preview_path:
+		draw_rect(
+			Rect2(Vector2(tile) * tile_size, Vector2(tile_size,  tile_size)),
+			Color(0.2, 1.0, 1.0, 0.35),
+			true
+		)
+
 	# ATAQUE
 	for tile in attack_tiles:
 		draw_rect(
@@ -68,6 +78,14 @@ func _draw() -> void:
 			true
 		)
 		print("DRAW CALL | attack_tiles:", attack_tiles)
+
+	#HOVER ATTACK
+	for tile in hover_attack_tiles:
+		draw_rect(
+			Rect2(Vector2(tile) * tile_size, Vector2(tile_size, tile_size)),
+			Color(1, 0.5, 0, 0.45),
+			true
+		)
 
 # =========================
 # GRID
@@ -97,6 +115,10 @@ func set_hovered_tile(tile: Vector2i) -> void:
 func clear_selection() -> void:
 	reachable_tiles.clear()
 	attack_tiles.clear()
+
+	preview_path.clear()
+	hover_attack_tiles.clear()
+
 	queue_redraw()
 
 func show_reachable_tiles(tiles: Array[Vector2i]) -> void:
@@ -334,3 +356,16 @@ func get_attackable_units(unit: HeroUnit, attack_tiles: Array[Vector2i]) -> Arra
 			targets.append(u)
 	
 	return targets
+
+func show_preview_path(path: Array[Vector2i]) -> void:
+	preview_path = path
+	queue_redraw()
+
+func show_hover_attack_tiles(tiles: Array[Vector2i]) -> void:
+	hover_attack_tiles = tiles
+	queue_redraw()
+
+func clear_hover_preview() -> void:
+	preview_path.clear()
+	hover_attack_tiles.clear()
+	queue_redraw()

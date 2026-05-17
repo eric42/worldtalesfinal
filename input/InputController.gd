@@ -135,6 +135,8 @@ func _input(event: InputEvent) -> void:
 			if tween != null:
 				await tween.finished
 
+			map.clear_hover_preview()
+
 			selected_unit.has_acted = true
 			selected_unit = null
 			map.clear_selection()
@@ -158,6 +160,9 @@ func _reset_selection() -> void:
 	selected_unit = null
 	map.clear_selection()
 	
+	map.clear_selection()
+	map.clear_hover_preview()
+	
 	preview_ui.hide_preview()
 
 func _process(delta: float) -> void:
@@ -170,17 +175,56 @@ func _process(delta: float) -> void:
 	var mouse_pos: Vector2 = get_global_mouse_position()
 	var grid: Vector2i = map.world_to_grid(mouse_pos)
 	
+	map.set_hovered_tile(grid)
+	
+	#=======================
+	#HOVER MOVIEMENTO
+	#=======================
+	if map.is_tile_reachable(grid):
+		var blocked: Array[Vector2i] = unit_manager.get_occupied_tiles()
+		
+		var path: Array[Vector2i] = map.get_grid_path(
+			selected_unit.grid_pos,
+			grid,
+			selected_unit,
+			blocked
+		)
+		
+		map.show_preview_path(path)
+		
+		#=======================
+		#PREVIEW ATAQUE
+		#=======================
+		var fake_reachable: Array[Vector2i] = [grid]
+		
+		var hover_attack_tiles = map.compute_attack_tiles_from_movement(
+			selected_unit,
+			fake_reachable
+		)
+		
+		map.show_hover_attack_tiles(hover_attack_tiles)
+		
+	else:
+		map.clear_hover_preview()
+		
+	#============================
+	#COMBAT PREVIEW
+	#============================
 	var unit: HeroUnit = unit_manager.get_unit_at(grid)
 	
 	if is_instance_valid(unit) and unit.faction == Faction.Type.ENEMY:
+		
 		if map.attack_tiles.has(grid):
-			var target = unit_manager.get_unit_at(grid)
 			
-			if target != null and target.faction != selected_unit.faction:
-				var sim = CombatResolver.simulate_attack(selected_unit, unit)
-				preview_ui.show_preview(sim)
-			else:
-				preview_ui.hide_preview()
+			var sim = CombatResolver.simulate_attack(
+				selected_unit,
+				unit
+			)
+			
+			preview_ui.show_preview(sim)
+			
+		else:
+			preview_ui.hide_preview()
 	else:
 		preview_ui.hide_preview()
 

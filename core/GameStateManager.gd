@@ -4,6 +4,7 @@ class_name GameStateManager
 enum State {
 	IDLE,
 	PLAYER_ANIMATING,
+	PLAYER_ACTION,
 	ENEMY_TURN
 }
 
