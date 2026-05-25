@@ -6,14 +6,19 @@ class_name InputController
 @export var turn_manager_path: NodePath
 @export var game_state_path: NodePath
 @export var preview_ui_path: NodePath
+@export var action_menu_path: NodePath
 
 @onready var map: BattleMap = get_node(battle_map_path)
 @onready var unit_manager: UnitManager = get_node(unit_manager_path)
 @onready var turn_manager: TurnManager = get_node(turn_manager_path)
 @onready var game_state: GameStateManager = get_node(game_state_path)
 @onready var preview_ui: CombatPreviewUI = get_node(preview_ui_path)
+@onready var action_menu: ActionMenuUI = get_node(action_menu_path)
+
 
 var selected_unit: HeroUnit = null
+var pending_action_unit: HeroUnit = null
+var original_position: Vector2i
 
 # =========================
 # INIT
@@ -23,6 +28,12 @@ func _ready() -> void:
 	assert(unit_manager)
 	assert(turn_manager)
 	assert(game_state)
+	assert(action_menu)
+	
+	action_menu.attack_selected.connect(_on_attack_selected)
+	action_menu.wait_selected.connect(_on_wait_selected)
+	action_menu.cancel_selected.connect(_on_cancel_selected)
+	
 	print("InputController pronto")
 
 # =========================
@@ -59,6 +70,7 @@ func _input(event: InputEvent) -> void:
 			print("\n=== SELECIONOU ===")
 			print("Unit:", unit)
 			print("Pos:", unit.grid_pos)
+			original_position = unit.grid_pos
 		
 			var blocked: Array[Vector2i] = unit_manager.get_occupied_tiles()
 			var reachable: Array[Vector2i] = map.compute_reachable_tiles(unit, blocked)
@@ -137,14 +149,11 @@ func _input(event: InputEvent) -> void:
 
 			map.clear_hover_preview()
 
-			selected_unit.has_acted = true
-			selected_unit = null
-			map.clear_selection()
-
-			game_state.set_state(GameStateManager.State.IDLE)
-
-			if unit_manager.all_player_units_acted():
-				turn_manager.end_current_turn()
+			pending_action_unit = selected_unit
+			
+			game_state.set_state(GameStateManager.State.PLAYER_ACTION)
+			
+			action_menu.show_menu(selected_unit.global_position)
 
 			return
 
@@ -239,3 +248,54 @@ func can_attack(attacker: HeroUnit, target: HeroUnit) -> bool:
 	var dist = map.grid_distance(attacker.grid_position, target.grid_position)
 	
 	return dist >= attacker.attack_range_min and dist <= attacker.attack_range_max
+
+func _on_wait_selected() -> void:
+	
+	print("WAIT selecionado")
+	
+	if pending_action_unit == null:
+		print("pending_action_unit NULL")
+		return
+	
+	pending_action_unit.has_acted = true
+	
+	selected_unit = null
+	pending_action_unit = null
+	
+	map.clear_selection()
+	
+	game_state.set_state(GameStateManager.State.IDLE)
+	
+	print("Estado atual:", game_state.current_state)
+	
+	if unit_manager.all_player_units_acted():
+		print("Todos aliados agiram")
+		turn_manager.end_current_turn()
+
+func _on_cancel_selected() -> void:
+	
+	if pending_action_unit == null:
+		return
+	
+	pending_action_unit.set_grid_pos(original_position)
+	
+	pending_action_unit.position = map.grid_to_world(
+		original_position
+	)
+	
+	selected_unit = pending_action_unit
+	pending_action_unit = null
+	
+	game_state.set_state(GameStateManager.State.IDLE)
+	
+	var blocked: Array[Vector2i] = unit_manager.get_occupied_tiles()
+	
+	var reachable = map.compute_reachable_tiles(
+		selected_unit,
+		blocked
+	)
+	
+	map.show_reachable_tiles(reachable)
+
+func _on_attack_selected() -> void:
+	print("Modo ataque")
