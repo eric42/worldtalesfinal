@@ -35,3 +35,18 @@ func _on_wait_pressed() -> void:
 func _on_cancel_pressed() -> void:
 	hide()
 	cancel_selected.emit()
+
+func set_attack_enabled(enabled: bool) -> void:
+	attack_button.disabled = !enabled
+
+func show_wait_only() -> void:
+	attack_button.hide()
+	wait_button.show()
+	cancel_button.show()
+	show()
+
+func show_full_menu() -> void:
+	attack_button.show()
+	wait_button.show()
+	cancel_button.show()
+	show()
